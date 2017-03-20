@@ -54,8 +54,18 @@
 
  1. 下載、安裝 VirtualBox
 
- 2. 建立一個 VirtualBox 虛擬機（1024 MB 虛擬記憶體、16 GB 虛擬硬碟就夠了）
+    https://www.virtualbox.org/wiki/Downloads
 
- 3. 在虛擬機內安裝 Ubuntu 16.04 作業系統 (桌面版或伺服器版的都可以)
+ 2. 建立一個 VirtualBox 虛擬機
+
+      - 1024 MB 虛擬記憶體
+      - 16 GB 虛擬硬碟
+
+ 3. 下載映像檔、安裝 Ubuntu 16.04 作業系統（桌面版或伺服器版）到虛擬機內
+
+    到 http://tw.releases.ubuntu.com/xenial/ 下載
+    `ubuntu-16.04.2-desktop-amd64.iso` 或 `ubuntu-16.04.2-server-amd64.iso`
 
  4. *(optional)* 為虛擬機新增網路介面接到一個 Host-only Adapter，在虛擬機內安裝 OpenSSH 伺服器
+
+    如此一來就可以直接從 VirtualBox host 用 SSH 連線進 VirtualBox guest
