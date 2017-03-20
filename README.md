@@ -39,45 +39,23 @@
         $ openssl version
         OpenSSL 1.0.2g  1 Mar 2016
 
+
+### 測試你的工作環境是否已經設定妥當
+
+
 一個設定成功的環境，要可以成功執行此 repository 內的 `decode.py` 程式，並且在 standard output 看到 `selftest ok` 字串被印出來。像是這樣子：
 
     $ python3 decode.py
     selftest ok
 
 
-### 範例工作環境
+### 用 VirtualBox 虛擬機造出一個工作環境
 
 
-  - 64-bit x86 machine (virtual)
-  - Ubuntu 16.04 (optional: with OpenSSH server)
-  - terminal emulator
-  - bash
-  - vim
-  - python3
-  - openssl
+ 1. 下載、安裝 VirtualBox
 
-你可以用 VirtualBox 虛擬機來造出一個相同的環境：
+ 2. 建立一個 VirtualBox 虛擬機（1024 MB 虛擬記憶體、16 GB 虛擬硬碟就夠了）
 
- 1. 安裝 VirtualBox
+ 3. 在虛擬機內安裝 Ubuntu 16.04 作業系統 (桌面版或伺服器版的都可以)
 
- 2. 建立一個 VirtualBox 虛擬機
-
- 3. 安裝 Ubuntu 16.04 作業系統 (桌面版或伺服器版都可以)
-
- 4. 打開終端機，在 bash shell 裡確認你已經有 `python3` 與 `openssl` 程式可以使用：
-
-    ```
-    $ type -a python3
-    python3 is /usr/bin/python3
-
-    $ type -a openssl
-    openssl is /usr/bin/openssl
-
-    $ python3 --version
-    Python 3.5.2
-
-    $ openssl version
-    OpenSSL 1.0.2g  1 Mar 2016
-    ```
-
- 5. (Optional) 在虛擬機的 Ubuntu 系統安裝 `openssh-server` 套件。將虛擬機連接到一個 Host-only Adapter，使我們可以從虛擬機外直接用 SSH 連進虛擬機。
+ 4. *(optional)* 為虛擬機新增網路介面接到一個 Host-only Adapter，在虛擬機內安裝 OpenSSH 伺服器
