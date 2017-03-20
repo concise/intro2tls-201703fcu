@@ -52,7 +52,7 @@
 ### 如果你使用 macOS
 
 
-蘋果的 macOS 作業系統預設應該就已經有 `/usr/bin/openssl` 程式了，但是並沒有 `python3` 程式。
+蘋果的 macOS 作業系統預設應該就已經有 `openssl` 程式了，但是並沒有 `python3` 程式。
 
 在 macOS 安裝 CPython 有很多種方法。我推薦先安裝 [Homebrew](https://brew.sh/) 這個套件管理工具，然後再 `brew install python3` 就行了。
 
