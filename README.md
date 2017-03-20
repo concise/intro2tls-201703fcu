@@ -27,7 +27,7 @@
 
  2. CPython
 
-    CPython 是 Python 這個程式語言的眾多實作之一，也是 python.org 官方的實作。請安裝 3.5 或 3.6 或更新的版本。許多 Linux distribution 預設就會提供 Python 2 或 Python 3 程式。如果版本太舊，你可以上 python.org 官網下載原始碼來自行編譯、安裝。安裝成功後，在命令列底下應該要有 `python3` 可以使用：
+    CPython 是 Python 這個程式語言的眾多實作之一，也是 python.org 官方的實作。請安裝 3.5 或 3.6 或更新的版本。許多 Linux distribution 預設就會提供 Python 2 或 Python 3 程式。如果版本太舊，你可以上 python.org 官網下載最新版本的[原始碼](https://www.python.org/downloads/source/)來自行編譯、安裝。安裝成功後，在命令列底下應該要有 `python3` 可以使用：
 
         $ python3 --version
         Python 3.5.2
