@@ -1,30 +1,34 @@
 # Introduction to TLS
 
 
-### ### 通知 ###
+## 通知
 
  1. 建議自備筆電來上課
 
- 2. 在上課之前，請先完成「課前暖身作業」（因人而異，可能需要 1 到 10 個小時）
+ 2. 上課前，請先完成下面的「課前暖身作業」（因人而異，可能需要 1 到 10 個小時）
 
 
-### ### 課前暖身作業 ###
+## 課前暖身作業
 
 
-請在上課前，準備好一個 Unix-like 的 Python 工作環境。你至少需要有：
+請在上課前，準備好一個 Unix-like 的 Python 工作環境。這個環境至少要能夠成功執行 `decode.py` 而不拋出任何 exception。接著，請想辦法看懂 `decode.py` 這份程式。如果你從來沒有接觸過 Python 這個程式語言，藉此機會可以把它學起來。官方文件網站的 [The Python Tutorial][tut_doc]、[The Python Standard Library][lib_doc]、[The Python Language Reference][lan_doc] 是不錯的教材與參考資源。
+
+[tut_doc]: https://docs.python.org/3/tutorial/index.html
+[lib_doc]: https://docs.python.org/3/library/index.html
+[lan_doc]: https://docs.python.org/3/reference/index.html
+
+你的 Python 工作環境應該至少要有：
 
  1. 純文字編輯器
 
-    我們需要處理以 UTF-8 編碼的純文字檔案。任何你喜歡的純文字編輯器 (plain text editor) 應該都能勝任。本課程的示範操作，將會在純文字終端機底下使用 `vim`。
+    我們需要處理以 UTF-8 編碼的純文字檔案。任何你喜歡的純文字編輯器 (plain text editor) 應該都能勝任。本課程的示範，將會以文字終端機底下的 `vim` 為主。
 
  2. CPython
 
-    CPython 是 Python 程式語言的眾多實作其中之一，也是官方的實作。請安裝 3.5 或 3.6 或更新的版本。安裝成功後，在命令列底下應該要有 `python3` 可以使用：
+    CPython 是 Python 這個程式語言的眾多實作之一，也是 python.org 官方的實作。請安裝 3.5 或 3.6 或更新的版本。許多 Linux distribution 預設就會提供 Python 2 或 Python 3 程式。如果版本太舊，你可以上 python.org 官網下載原始碼來自行編譯、安裝。安裝成功後，在命令列底下應該要有 `python3` 可以使用：
 
         $ python3 --version
         Python 3.5.2
-
-    許多 Linux distribution 預設就會提供 Python 2 或 Python 3 程式。如果版本太舊，你可以上 python.org 官網下載原始碼來自行編譯、安裝。
 
  3. OpenSSL 的命令列工具
 
@@ -37,8 +41,6 @@
 
     $ python3 decode.py
     selftest ok
-
-如果成功了，請想辦法看懂 `decode.py` 這份程式。
 
 
 ### 範例工作環境
