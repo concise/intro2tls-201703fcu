@@ -3,13 +3,13 @@
 
  1. 建議自備筆電來上課
 
- 2. 上課前，請先完成下面的「課前暖身作業」（因人而異，可能需要 1 到 10 個小時）
+ 2. 上課前，請先完成下面的「課前暖身準備」（因人而異，可能需要 1 到 10 個小時）
 
 
-# 課前暖身作業
+# 課前暖身準備
 
 
-請在上課前準備好一個 Unix-like 作業系統下的 Python 工作環境。你的工作環境至少要能成功執行 `decode.py` 而不拋出任何 exception。接著，請想辦法看懂 `decode.py` 這份程式裡面用到的各種 Python 語法。如果你從來沒有接觸過 Python 這個程式語言，藉此機會可以把它學起來。官方的 [The Python Tutorial][tut_doc]、[The Python Standard Library][lib_doc]、[The Python Language Reference][lan_doc] 是非常不錯的教材與參考資源。
+請在上課前準備好一個 Unix-like 作業系統下的 Python 工作環境。你的工作環境至少要能成功執行 `decode.py` 而不拋出任何 exception。接著，請想辦法看懂 `decode.py` 這份程式裡面用到的各種 Python 語法。如果你從來沒有接觸過 Python 這個程式語言，藉此機會可以把它學起來。官方的 [The Python Tutorial][tut_doc]、[The Python Standard Library][lib_doc]、[The Python Language Reference][lan_doc] 是非常不錯的學習與參考資源。
 
 [tut_doc]: https://docs.python.org/3/tutorial/index.html
 [lib_doc]: https://docs.python.org/3/library/index.html
@@ -49,17 +49,20 @@
     selftest ok
 
 
-### 用 VirtualBox 虛擬機造出一個工作環境
+### 用 VirtualBox 虛擬機造出一個範例工作環境
+
+
+本課程進行中，使用的範例工作環境是 Ubuntu 16.04 (64-bit x86) 作業系統。你可以利用 VirtualBox 打造出一個相同的工作環境：
 
 
  1. 到 [VirtualBox 官方網站][vb]下載 VirtualBox 安裝檔 (the *platform packages*)
 
  2. 到[任何一個 Ubuntu release mirror][release_mirror] 下載 `ubuntu-16.04.2-desktop-amd64.iso`（桌面版）或 `ubuntu-16.04.2-server-amd64.iso`（伺服器版），如果你不需要 GUI 則建議用伺服器版的就好，比較省資源
- 
+
  3. 安裝 VirtualBox
 
  4. 建立一個 VirtualBox 虛擬機，讓虛擬機用光碟映像檔開機，將 Ubuntu 16.04 作業系統安裝到虛擬機內
- 
+
     虛擬機資源分配參考：
 
       - 桌面版：1024 MB 虛擬記憶體、16 GB 虛擬硬碟
