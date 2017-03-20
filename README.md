@@ -15,7 +15,7 @@
 # 課前暖身準備
 
 
-請在上課前準備好一個 Unix-like 作業系統下的 Python 工作環境。你的工作環境至少要能成功執行 `decode.py` 而不拋出任何 exception。接著，請想辦法看懂 `decode.py` 這份程式裡面用到的各種 Python 語法。如果你從來沒有接觸過 Python 這個程式語言，藉此機會可以把它學起來。官方的 [The Python Tutorial][tut_doc]、[The Python Standard Library][lib_doc]、[The Python Language Reference][lan_doc] 是非常不錯的學習與參考資源。
+請在上課前準備好一個 Unix-like 作業系統下的 Python 工作環境。你的工作環境至少要能成功執行 `decode.py` 而不拋出任何 exception。接著，請想辦法看懂 `decode.py` 這份程式裡面的各個函式在做什麼。如果你從來沒有接觸過 Python 這個程式語言，請藉此機會把它學起來，至少要看得懂 `decode.py` 裡面用到的各種 Python 語法。官方的 [The Python Tutorial][tut_doc]、[The Python Standard Library][lib_doc]、[The Python Language Reference][lan_doc] 是非常不錯的學習與參考資源。
 
 [tut_doc]: https://docs.python.org/3/tutorial/index.html
 [lib_doc]: https://docs.python.org/3/library/index.html
