@@ -1,17 +1,14 @@
-# Introduction to TLS
-
-
-## 通知
+# 通知
 
  1. 建議自備筆電來上課
 
  2. 上課前，請先完成下面的「課前暖身作業」（因人而異，可能需要 1 到 10 個小時）
 
 
-## 課前暖身作業
+# 課前暖身作業
 
 
-請在上課前，準備好一個 Unix-like 的 Python 工作環境。這個環境至少要能夠成功執行 `decode.py` 而不拋出任何 exception。接著，請想辦法看懂 `decode.py` 這份程式。如果你從來沒有接觸過 Python 這個程式語言，藉此機會可以把它學起來。官方文件網站的 [The Python Tutorial][tut_doc]、[The Python Standard Library][lib_doc]、[The Python Language Reference][lan_doc] 是不錯的教材與參考資源。
+請在**上課前**準備好一個 Unix-like 的 Python 工作環境。這個環境至少要能夠成功執行 `decode.py` 而不拋出任何 exception。接著，請想辦法看懂 `decode.py` 這份程式裡面用到的各種 Python 語法。如果你從來沒有接觸過 Python 這個程式語言，藉此機會可以把它學起來。官方的 [The Python Tutorial][tut_doc]、[The Python Standard Library][lib_doc]、[The Python Language Reference][lan_doc] 是非常不錯的教材與參考資源。
 
 [tut_doc]: https://docs.python.org/3/tutorial/index.html
 [lib_doc]: https://docs.python.org/3/library/index.html
@@ -43,7 +40,7 @@
     selftest ok
 
 
-### 範例工作環境
+# 範例工作環境
 
   - 64-bit x86 machine
   - Ubuntu 16.04
