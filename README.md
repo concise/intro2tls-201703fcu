@@ -1,4 +1,10 @@
-# 通知
+# Introduction to TLS - the Hacker Way
+
+
+在這六小時的課程中，我會帶領各位認識密碼學非常重要的一項實際應用：[TLS](https://en.wikipedia.org/wiki/Transport_Layer_Security)。各位同學將需要撰寫 Python 程式，去解碼已經側錄好的 TLS 封包，並且實作一個針對沒有 [forward secrecy](https://en.wikipedia.org/wiki/Forward_secrecy) 的系統的攻擊：在已知伺服器端 RSA 私鑰的條件下解密使用較弱 cipher suite 的通訊、取得明文。
+
+
+# 重要通知
 
 
  1. 建議自備筆電來上課
