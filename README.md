@@ -49,10 +49,18 @@
     selftest ok
 
 
+### 如果你使用 macOS
+
+
+蘋果的 macOS 作業系統預設應該就已經有 `/usr/bin/openssl` 程式了，但是並沒有 `python3` 程式。
+
+在 macOS 安裝 CPython 有很多種方法。我推薦先安裝 [Homebrew](https://brew.sh/) 這個套件管理工具，然後再 `brew install python3` 就行了。
+
+
 ### 用 VirtualBox 虛擬機造出一個範例工作環境
 
 
-本課程進行中，使用的範例工作環境是 Ubuntu 16.04 (64-bit x86) 作業系統。你可以利用 VirtualBox 打造出一個相同的工作環境：
+本課程進行中，使用的範例工作環境是 Ubuntu 16.04 (64-bit x86) 作業系統。你可以利用 VirtualBox 打造出一個幾乎相同的工作環境：
 
 
  1. 到 [VirtualBox 官方網站][vb]下載 VirtualBox 安裝檔 (the *platform packages*)
