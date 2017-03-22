@@ -80,7 +80,7 @@
     虛擬機資源分配參考：
 
       - 桌面版：1024 MB 虛擬記憶體、16 GB 虛擬硬碟
-      - 伺服器版：512 MB 記憶體、4 GB 硬碟
+      - 伺服器版：512 MB 虛擬記憶體、4 GB 虛擬硬碟
 
  5. *(optional)* 為虛擬機新增網路介面接到一個 Host-only Adapter，在虛擬機內安裝 OpenSSH 伺服器。（`apt-get install openssh-server`）如此一來就可以直接從 VirtualBox host 用 `ssh` 連線進 VirtualBox guest，也可以用 `scp` 搬移檔案。
 
