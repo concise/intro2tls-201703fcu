@@ -1,0 +1,721 @@
+考慮情境
+
+        * 我們已經側錄了一個完整的 HTTPS request 與 response
+        * TLS 版本為 1.2
+        * 使用無 forward secrecy 的 TLS_RSA_WITH_AES_128_CBC_SHA
+        * 使用 SHA-256 作為 PRF
+        * 使用 AES-128-CBC 搭配 HMAC-SHA1 來做認證加密
+        * 使用 RSA-2048 做金鑰交換
+        * 我們已經竊取到 server 的 long term RSA secret key
+        * 我們想要的機密資訊藏在 HTTPS response 內
+
+側錄到的 client-to-server 的 TCP traffic 為
+
+        160301011e0100011a030321e1129fc6492a0d975059f6732b9a5a6ef56e7b0f
+        e87b2ba502ab41cc7cc21e000076c030c02cc028c024c014c00a00a3009f006b
+        006a0039003800880087c032c02ec02ac026c00fc005009d003d00350084c012
+        c00800160013c00dc003000ac02fc02bc027c023c013c00900a2009e00670040
+        00330032009a009900450044c031c02dc029c025c00ec004009c003c002f0096
+        004100ff0100007b0000000e000c0000096c6f63616c686f7374000b00040300
+        0102000a00340032000e000d0019000b000c00180009000a0016001700080006
+        0007001400150004000500120013000100020003000f00100011000d0020001e
+        060106020603050105020503040104020403030103020303020102020203000f
+        0001011603030106100001020100438758729a7b2e81d4589fc7ff7c07a7b3dd
+        81e1b3531c44a58e54fda73b9c27d0e36dbc273a16561ed74adc52da9751c68f
+        a966979374397467d27f55870f734a69ac4e18c262b6a38079cb6cb1910d5272
+        42f54aeebd6c15465ae106d1e3febfd7b3d4e2261be2a42324b061d407cfc7d5
+        fc7555fd22af574c064b211e31bfb3a9e68d20171ce856b47d104ff6dbbe2805
+        7b6f0b62fba276bc535c5c0457d5fd3db6519b404bd6f8148e330cba1de7899a
+        ad94ee8d0f9ce6e9f6d812ca5176c8ebd068c01101a7dca8471e4a3c829d0575
+        f6cece69064ee38ddb904e902bec53614a28f9e8eb851e8669c0aae588f8494e
+        79850574ac553f22f1495222e65d1403030001011603030040fa2f616ba89c58
+        d8a0ea2df6b8f8434ec852d1839807bbd87a1c52244fb2bc208a4f0243776777
+        e2598c5d662c9ecbc29e512b53d286c5912660926ecc2716ff1703030080d43e
+        bf917ec5db46b665c2183d7d349f8ce251d48685a2ae91ee905c6c1d7cdafde0
+        9a0221db4d847e9351d872525dcc7fdd87c19b3ae8c1dfd20133aaea940b7e6e
+        174231b8631e3b587f44ce4365fa0f20e17f7e342959e4aeb23d55d5a45e53ef
+        8deb75572c1b008a824c52a0f9fbeae16121a3b701aa5f86a6cffd188f801503
+        0300308f3081d3014aa3c4cf46513f5359253eeb0b54f4cc1e8e75b8089b750c
+        961b54b0c72991869cf1c2ebe014d96d71b1ab
+
+根據 TLSPlaintext、TLSCompressed、TLSCiphertext 的格式：
+
+        struct {
+            uint8 major;
+            uint8 minor;
+        } ProtocolVersion;
+
+        enum {
+            change_cipher_spec(20), alert(21), handshake(22),
+            application_data(23), (255)
+        } ContentType;
+
+        struct {
+            ContentType type;
+            ProtocolVersion version;
+            uint16 length;
+            opaque fragment[TLSPlaintext.length];
+        } TLSPlaintext;
+
+        struct {
+            ContentType type;
+            ProtocolVersion version;
+            uint16 length;
+            opaque fragment[TLSCompressed.length];
+        } TLSCompressed;
+
+        struct {
+            ContentType type;
+            ProtocolVersion version;
+            uint16 length;
+            select (SecurityParameters.cipher_type) {
+                case stream: GenericStreamCipher;
+                case block:  GenericBlockCipher;
+                case aead:   GenericAEADCipher;
+            } fragment;
+        } TLSCiphertext;
+
+可以將整個 client-to-server TCP traffic 切成多個 TLS records
+
+        16 0301 011e (Handshake)
+        0100011a030321e1129fc6492a0d975059f6732b9a5a6ef56e7b0fe87b2ba502
+        ab41cc7cc21e000076c030c02cc028c024c014c00a00a3009f006b006a003900
+        3800880087c032c02ec02ac026c00fc005009d003d00350084c012c008001600
+        13c00dc003000ac02fc02bc027c023c013c00900a2009e006700400033003200
+        9a009900450044c031c02dc029c025c00ec004009c003c002f0096004100ff01
+        00007b0000000e000c0000096c6f63616c686f7374000b000403000102000a00
+        340032000e000d0019000b000c00180009000a00160017000800060007001400
+        150004000500120013000100020003000f00100011000d0020001e0601060206
+        03050105020503040104020403030103020303020102020203000f000101
+
+        16 0303 0106 (Handshake)
+        100001020100438758729a7b2e81d4589fc7ff7c07a7b3dd81e1b3531c44a58e
+        54fda73b9c27d0e36dbc273a16561ed74adc52da9751c68fa966979374397467
+        d27f55870f734a69ac4e18c262b6a38079cb6cb1910d527242f54aeebd6c1546
+        5ae106d1e3febfd7b3d4e2261be2a42324b061d407cfc7d5fc7555fd22af574c
+        064b211e31bfb3a9e68d20171ce856b47d104ff6dbbe28057b6f0b62fba276bc
+        535c5c0457d5fd3db6519b404bd6f8148e330cba1de7899aad94ee8d0f9ce6e9
+        f6d812ca5176c8ebd068c01101a7dca8471e4a3c829d0575f6cece69064ee38d
+        db904e902bec53614a28f9e8eb851e8669c0aae588f8494e79850574ac553f22
+        f1495222e65d
+
+        14 0303 0001 (ChangeCipherSpec)
+        01
+
+        16 0303 0040 (Handshake)
+        fa2f616ba89c58d8a0ea2df6b8f8434ec852d1839807bbd87a1c52244fb2bc20
+        8a4f0243776777e2598c5d662c9ecbc29e512b53d286c5912660926ecc2716ff
+
+        17 0303 0080 (ApplicationData)
+        d43ebf917ec5db46b665c2183d7d349f8ce251d48685a2ae91ee905c6c1d7cda
+        fde09a0221db4d847e9351d872525dcc7fdd87c19b3ae8c1dfd20133aaea940b
+        7e6e174231b8631e3b587f44ce4365fa0f20e17f7e342959e4aeb23d55d5a45e
+        53ef8deb75572c1b008a824c52a0f9fbeae16121a3b701aa5f86a6cffd188f80
+
+        15 0303 0030 (Alert)
+        8f3081d3014aa3c4cf46513f5359253eeb0b54f4cc1e8e75b8089b750c961b54
+        b0c72991869cf1c2ebe014d96d71b1ab
+
+根據 Handshake 的格式：
+
+        enum {
+            hello_request(0), client_hello(1), server_hello(2),
+            certificate(11), server_key_exchange (12),
+            certificate_request(13), server_hello_done(14),
+            certificate_verify(15), client_key_exchange(16),
+            finished(20)
+            (255)
+        } HandshakeType;
+
+        struct {
+            HandshakeType msg_type;
+            uint24 length;
+            select (HandshakeType) {
+                case hello_request:       HelloRequest;
+                case client_hello:        ClientHello;
+                case server_hello:        ServerHello;
+                case certificate:         Certificate;
+                case server_key_exchange: ServerKeyExchange;
+                case certificate_request: CertificateRequest;
+                case server_hello_done:   ServerHelloDone;
+                case certificate_verify:  CertificateVerify;
+                case client_key_exchange: ClientKeyExchange;
+                case finished:            Finished;
+            } body;
+        } Handshake;
+
+我們知道 client-to-server 第一個 record 內含的 Handshake 訊息
+
+        0100011a030321e1129fc6492a0d975059f6732b9a5a6ef56e7b0fe87b2ba502
+        ab41cc7cc21e000076c030c02cc028c024c014c00a00a3009f006b006a003900
+        3800880087c032c02ec02ac026c00fc005009d003d00350084c012c008001600
+        13c00dc003000ac02fc02bc027c023c013c00900a2009e006700400033003200
+        9a009900450044c031c02dc029c025c00ec004009c003c002f0096004100ff01
+        00007b0000000e000c0000096c6f63616c686f7374000b000403000102000a00
+        340032000e000d0019000b000c00180009000a00160017000800060007001400
+        150004000500120013000100020003000f00100011000d0020001e0601060206
+        03050105020503040104020403030103020303020102020203000f000101
+
+其實是一個 ClientHello 訊息 (Handshake.msg_type == 1)
+
+        01 00011a
+        030321e1129fc6492a0d975059f6732b9a5a6ef56e7b0fe87b2ba502ab41cc7c
+        c21e000076c030c02cc028c024c014c00a00a3009f006b006a00390038008800
+        87c032c02ec02ac026c00fc005009d003d00350084c012c00800160013c00dc0
+        03000ac02fc02bc027c023c013c00900a2009e0067004000330032009a009900
+        450044c031c02dc029c025c00ec004009c003c002f0096004100ff0100007b00
+        00000e000c0000096c6f63616c686f7374000b000403000102000a0034003200
+        0e000d0019000b000c00180009000a0016001700080006000700140015000400
+        0500120013000100020003000f00100011000d0020001e060106020603050105
+        020503040104020403030103020303020102020203000f000101
+
+根據 ClientHello 的格式：
+
+        struct {
+            uint8 major;
+            uint8 minor;
+        } ProtocolVersion;
+
+        struct {
+            uint32 gmt_unix_time;
+            opaque random_bytes[28];
+        } Random;
+
+        struct {
+            ProtocolVersion client_version;
+            Random random;
+            SessionID session_id;
+            CipherSuite cipher_suites<2..2^16-2>;
+            CompressionMethod compression_methods<1..2^8-1>;
+            select (extensions_present) {
+                case false:
+                    struct {};
+                case true:
+                    Extension extensions<0..2^16-1>;
+            };
+        } ClientHello;
+
+我們可以知道 client random 為：
+
+        21e1129fc6492a0d975059f6732b9a5a6ef56e7b0fe87b2ba502ab41cc7cc21e
+
+我們知道 client-to-server 第二個 record 內含的 Handshake 訊息
+
+        100001020100438758729a7b2e81d4589fc7ff7c07a7b3dd81e1b3531c44a58e
+        54fda73b9c27d0e36dbc273a16561ed74adc52da9751c68fa966979374397467
+        d27f55870f734a69ac4e18c262b6a38079cb6cb1910d527242f54aeebd6c1546
+        5ae106d1e3febfd7b3d4e2261be2a42324b061d407cfc7d5fc7555fd22af574c
+        064b211e31bfb3a9e68d20171ce856b47d104ff6dbbe28057b6f0b62fba276bc
+        535c5c0457d5fd3db6519b404bd6f8148e330cba1de7899aad94ee8d0f9ce6e9
+        f6d812ca5176c8ebd068c01101a7dca8471e4a3c829d0575f6cece69064ee38d
+        db904e902bec53614a28f9e8eb851e8669c0aae588f8494e79850574ac553f22
+        f1495222e65d
+
+其實是一個 ClientKeyExchange 訊息 (Handshake.msg_type == 16)
+
+        10 000102
+        0100438758729a7b2e81d4589fc7ff7c07a7b3dd81e1b3531c44a58e54fda73b
+        9c27d0e36dbc273a16561ed74adc52da9751c68fa966979374397467d27f5587
+        0f734a69ac4e18c262b6a38079cb6cb1910d527242f54aeebd6c15465ae106d1
+        e3febfd7b3d4e2261be2a42324b061d407cfc7d5fc7555fd22af574c064b211e
+        31bfb3a9e68d20171ce856b47d104ff6dbbe28057b6f0b62fba276bc535c5c04
+        57d5fd3db6519b404bd6f8148e330cba1de7899aad94ee8d0f9ce6e9f6d812ca
+        5176c8ebd068c01101a7dca8471e4a3c829d0575f6cece69064ee38ddb904e90
+        2bec53614a28f9e8eb851e8669c0aae588f8494e79850574ac553f22f1495222
+        e65d
+
+根據 ClientKeyExchange 的格式：
+
+        struct {
+            select (KeyExchangeAlgorithm) {
+                case rsa:
+                    EncryptedPreMasterSecret;
+                case dhe_dss:
+                case dhe_rsa:
+                case dh_dss:
+                case dh_rsa:
+                case dh_anon:
+                    ClientDiffieHellmanPublic;
+            } exchange_keys;
+        } ClientKeyExchange;
+
+        struct {
+            public-key-encrypted PreMasterSecret pre_master_secret;
+        } EncryptedPreMasterSecret;
+
+        struct {
+            ProtocolVersion client_version;
+            opaque random[46];
+        } PreMasterSecret;
+
+        注意資料編碼：
+            A public-key-encrypted element is encoded as
+            an opaque vector <0..2^16-1>, where the length
+            is specified by the encryption algorithm and key.
+
+我們知道被 RSA 加密的 premaster secret 為
+
+        438758729a7b2e81d4589fc7ff7c07a7b3dd81e1b3531c44a58e54fda73b9c27
+        d0e36dbc273a16561ed74adc52da9751c68fa966979374397467d27f55870f73
+        4a69ac4e18c262b6a38079cb6cb1910d527242f54aeebd6c15465ae106d1e3fe
+        bfd7b3d4e2261be2a42324b061d407cfc7d5fc7555fd22af574c064b211e31bf
+        b3a9e68d20171ce856b47d104ff6dbbe28057b6f0b62fba276bc535c5c0457d5
+        fd3db6519b404bd6f8148e330cba1de7899aad94ee8d0f9ce6e9f6d812ca5176
+        c8ebd068c01101a7dca8471e4a3c829d0575f6cece69064ee38ddb904e902bec
+        53614a28f9e8eb851e8669c0aae588f8494e79850574ac553f22f1495222e65d
+
+已知伺服器的 RSA secret key 為
+
+        -----BEGIN RSA PRIVATE KEY-----
+        MIIEowIBAAKCAQEAyxvs6e5MXZLX/xFQgMpZXEM70w9yjVYa2/FZGlnJz4n8wO4H
+        A9nOSL8iDCZJ8Ny9AXtTVOrIgN7fpjFpWJe4gTScvNvqyo112W17zGcwQVXvTfMR
+        BpU9B0h9D8byhBbgIZxBjHezqk4KfhMnHFin0dZJ+3siG6FncJQ5xPzu2OIlS++g
+        +iYOthuv3yRRoJxkMtD4KoEJA06yQNZCXezLxPAcbUNXTrJuofkavWsM4Y348wQ9
+        j/ztE3VxwgGhleBipywQf+7cz3QHbHCGZMIfoVyNvkyfvlfnNRy8bSYmS/uo58AF
+        M47OoLhcPDhQMZQNB8op2vVbrijz94N+8rjg4wIDAQABAoIBACvnD2DJZ6xaT2IN
+        Bg+wrXwp9EZ88k/mqsub8Zymh97afs3dJZsJe3NyDRP/OsBblmc5lxul3E0u37z2
+        tUS3FuSm0LJp/uhlh3HGHppiO6YDw0RgI+/+VkC6xH2ijU1L/IqHUgvg2+8WC2KR
+        FUUlTLEo1rkLNqYuT0OgZpRT7/TlGkqaNvvKQmtfFRdgQNJteryeit6Lw66NAy32
+        aYhnlt4HRBtk9AmcytVH4UWqvIDIb3rqf4qnXlsOtJEQcCOHOfqh6g3Gc0+64HXn
+        pkmyHsFRBTGgufu0F6PxDe2gotC7yajugmhhRW2NCf/s6RsYrrUCpUeGDFhtF4bv
+        gsndgTECgYEA871c8j62WnMoqND+P4RMNNs9fh0XVCopZPfyS1PWoaPIYpuTfkFV
+        GgXMxyTod0Zp6DcJ8I0uCrDxQeTaKNQ4sAy1szogjq0T5az5WdDCeRTcnBBUz/uh
+        ROyMZcVcB7ULrdoDSLz1a+2agHykornBOziaEIebfb/PDFQIVs9fU/8CgYEA1VNc
+        nssHERVGE1Xnd7toofMKJKCKA5kNRZGUyPqGXX7VyZoB+YjQSv6mTHvZQH+MAe1r
+        7P6ioI+afnFSY0CHLZBhY5pxgb44Xwg4GfCynzjVRKbirM17jVsqM3ngvKdfHOgS
+        xKbRztxGYfcvLoi+ATv9WV4iPtJQgi9fFCmPox0CgYEAnHHSA8bO4tWBpoGmf3xa
+        MZ77JERl4ebB9QXUphbk75EhoHE9RU+H4RER9EyzTUOL3LnfDmB/yeryn5nVkVlO
+        HWm7ApPvq8RZvhS9Y7HD8VW7mAw/c9OOGqA+KWB5BpVlLqx9aSWn3SOABLJ8NdpG
+        tc1JzgxMeHUx3zbct2OZS18CgYA9BbKZ7ePgnCBGia1Dz8U3hmlhXtb7/n0QaHuS
+        Hi/vcMfA+qAT/HHw8fUqLcdQruui5YKY8aIdodaE0u/JWn0QqJtjPZu4jGxdquE5
+        cmP2LfC7ya1P1xu/rNNelD+YV5xajXxI6ptbvCEaBvZlLlKD0eA//zB2nfzPsLNW
+        9iiTdQKBgGSWVXyXMckt87gYSOBUdd95dC+PSoa1IQrF8YfQmEeiEoR+i+oef/7c
+        vt6Patbn+pFJwn9c47D5qOhb/eTsE+NhOqI8+lU3aKVb/w3RQKf8QD+TZI/jTU/h
+        A5jWIEciBE/HZNb65J1usBLFznGgS7yQlpQtXdwLA2+ZyaQPBQMC
+        -----END RSA PRIVATE KEY-----
+
+在 bash shell 底下執行以下命令：
+
+        # echo '
+        438758729a7b2e81d4589fc7ff7c07a7b3dd81e1b3531c44a58e54fda73b9c27
+        d0e36dbc273a16561ed74adc52da9751c68fa966979374397467d27f55870f73
+        4a69ac4e18c262b6a38079cb6cb1910d527242f54aeebd6c15465ae106d1e3fe
+        bfd7b3d4e2261be2a42324b061d407cfc7d5fc7555fd22af574c064b211e31bf
+        b3a9e68d20171ce856b47d104ff6dbbe28057b6f0b62fba276bc535c5c0457d5
+        fd3db6519b404bd6f8148e330cba1de7899aad94ee8d0f9ce6e9f6d812ca5176
+        c8ebd068c01101a7dca8471e4a3c829d0575f6cece69064ee38ddb904e902bec
+        53614a28f9e8eb851e8669c0aae588f8494e79850574ac553f22f1495222e65d
+        ' | xxd -p -r | openssl rsautl -decrypt -inkey <( echo '
+        -----BEGIN RSA PRIVATE KEY-----
+        MIIEowIBAAKCAQEAyxvs6e5MXZLX/xFQgMpZXEM70w9yjVYa2/FZGlnJz4n8wO4H
+        A9nOSL8iDCZJ8Ny9AXtTVOrIgN7fpjFpWJe4gTScvNvqyo112W17zGcwQVXvTfMR
+        BpU9B0h9D8byhBbgIZxBjHezqk4KfhMnHFin0dZJ+3siG6FncJQ5xPzu2OIlS++g
+        +iYOthuv3yRRoJxkMtD4KoEJA06yQNZCXezLxPAcbUNXTrJuofkavWsM4Y348wQ9
+        j/ztE3VxwgGhleBipywQf+7cz3QHbHCGZMIfoVyNvkyfvlfnNRy8bSYmS/uo58AF
+        M47OoLhcPDhQMZQNB8op2vVbrijz94N+8rjg4wIDAQABAoIBACvnD2DJZ6xaT2IN
+        Bg+wrXwp9EZ88k/mqsub8Zymh97afs3dJZsJe3NyDRP/OsBblmc5lxul3E0u37z2
+        tUS3FuSm0LJp/uhlh3HGHppiO6YDw0RgI+/+VkC6xH2ijU1L/IqHUgvg2+8WC2KR
+        FUUlTLEo1rkLNqYuT0OgZpRT7/TlGkqaNvvKQmtfFRdgQNJteryeit6Lw66NAy32
+        aYhnlt4HRBtk9AmcytVH4UWqvIDIb3rqf4qnXlsOtJEQcCOHOfqh6g3Gc0+64HXn
+        pkmyHsFRBTGgufu0F6PxDe2gotC7yajugmhhRW2NCf/s6RsYrrUCpUeGDFhtF4bv
+        gsndgTECgYEA871c8j62WnMoqND+P4RMNNs9fh0XVCopZPfyS1PWoaPIYpuTfkFV
+        GgXMxyTod0Zp6DcJ8I0uCrDxQeTaKNQ4sAy1szogjq0T5az5WdDCeRTcnBBUz/uh
+        ROyMZcVcB7ULrdoDSLz1a+2agHykornBOziaEIebfb/PDFQIVs9fU/8CgYEA1VNc
+        nssHERVGE1Xnd7toofMKJKCKA5kNRZGUyPqGXX7VyZoB+YjQSv6mTHvZQH+MAe1r
+        7P6ioI+afnFSY0CHLZBhY5pxgb44Xwg4GfCynzjVRKbirM17jVsqM3ngvKdfHOgS
+        xKbRztxGYfcvLoi+ATv9WV4iPtJQgi9fFCmPox0CgYEAnHHSA8bO4tWBpoGmf3xa
+        MZ77JERl4ebB9QXUphbk75EhoHE9RU+H4RER9EyzTUOL3LnfDmB/yeryn5nVkVlO
+        HWm7ApPvq8RZvhS9Y7HD8VW7mAw/c9OOGqA+KWB5BpVlLqx9aSWn3SOABLJ8NdpG
+        tc1JzgxMeHUx3zbct2OZS18CgYA9BbKZ7ePgnCBGia1Dz8U3hmlhXtb7/n0QaHuS
+        Hi/vcMfA+qAT/HHw8fUqLcdQruui5YKY8aIdodaE0u/JWn0QqJtjPZu4jGxdquE5
+        cmP2LfC7ya1P1xu/rNNelD+YV5xajXxI6ptbvCEaBvZlLlKD0eA//zB2nfzPsLNW
+        9iiTdQKBgGSWVXyXMckt87gYSOBUdd95dC+PSoa1IQrF8YfQmEeiEoR+i+oef/7c
+        vt6Patbn+pFJwn9c47D5qOhb/eTsE+NhOqI8+lU3aKVb/w3RQKf8QD+TZI/jTU/h
+        A5jWIEciBE/HZNb65J1usBLFznGgS7yQlpQtXdwLA2+ZyaQPBQMC
+        -----END RSA PRIVATE KEY-----
+        ' | sed 's/^ *//' ) | xxd -p
+
+可以得到 RSA 解密後的結果，長度為 48-byte 的 premaster secret：
+
+        0303391fbf91d81d91e1fb7b2c941472eb44b63ff6e860ca35298edef82b316f
+        b516d916c72343b6b38074df2967ca56
+
+側錄到的 server-to-client 的 TCP traffic 為
+
+        1603030057020000530303571cf72c5e0d66bed4584c1c6626e7af36293290c5
+        fb519d2a5d0993bf64ea08206aab25a5ffb91d0edd6a190e307510e6973d374d
+        e8212c5c04b867b547877dfd002f00000bff01000100000b0002010016030308
+        600b00085c0008590002ad308202a930820191020900957cdad31df38099300d
+        06092a864886f70d01010b050030193117301506035504030c0e696e7465726d
+        6564696174656361301e170d3136303430383038353631335a170d3139303130
+        333038353631335a30143112301006035504030c096c6f63616c686f73743082
+        0122300d06092a864886f70d01010105000382010f003082010a0282010100cb
+        1bece9ee4c5d92d7ff115080ca595c433bd30f728d561adbf1591a59c9cf89fc
+        c0ee0703d9ce48bf220c2649f0dcbd017b5354eac880dedfa631695897b88134
+        9cbcdbeaca8d75d96d7bcc67304155ef4df31106953d07487d0fc6f28416e021
+        9c418c77b3aa4e0a7e13271c58a7d1d649fb7b221ba167709439c4fceed8e225
+        4befa0fa260eb61bafdf2451a09c6432d0f82a8109034eb240d6425deccbc4f0
+        1c6d43574eb26ea1f91abd6b0ce18df8f3043d8ffced137571c201a195e062a7
+        2c107feedccf74076c708664c21fa15c8dbe4c9fbe57e7351cbc6d26264bfba8
+        e7c005338ecea0b85c3c385031940d07ca29daf55bae28f3f7837ef2b8e0e302
+        03010001300d06092a864886f70d01010b050003820101008154fc88c89ca680
+        5726df9c22f7ae0bb2599574e489336abb239b8a64f9197d69bc1a49211a1733
+        1d51dff4b6360c50e534fa9b180ec399ae9cf962c3d6a79a89c204f5dd8d8db9
+        3c3aeda3a9f258a040817bb6b0a01d81ec5209e7d919766928590517c3738ccf
+        212335d91d06222554db4b79a2ff41cef4521746a93c3846e3c0fb62f15bcdfa
+        62e13e316d78e490b6908eecea0740482122f0a7ef1c7c16ccd82da372b7e812
+        4d6fabf716d10b652feb00a5cee6b85c547a2a4062794c47554b8bd9710dd6b0
+        026aba8f8681eced1aebae0eab0351f06e0dd88640796486b69c11f61a14e2da
+        50db80b565e37e3ebf0f6660a2afeaffbe3e808cb1c9ccb50002d7308202d330
+        8201bba003020102020900a8cbb1716a0a4b1e300d06092a864886f70d01010b
+        05003011310f300d06035504031306726f6f746361301e170d31363034303830
+        38353631335a170d3139303130333038353631335a3019311730150603550403
+        0c0e696e7465726d656469617465636130820122300d06092a864886f70d0101
+        0105000382010f003082010a0282010100c1201e1ed78725dcc41d2ba3c9fb24
+        f0d75fbae38b1ca7fef9e6551a0b0f27be7084a705a5d802442dc0bdb36b6636
+        b58c0deb3c6446bbef37deb47405ac5420bcb6567f54f572756b5f73b2d2ed2d
+        4b44c9ffc96155e13247e08d988a8f5e42a610260c07ef4abe8f00c1ed35d863
+        142562dc35a3607f0ae4f91c0d024b0b70da22f1652f54cfc76bd087fa5f179d
+        caff9782b334ae5970de09a68ab307ec74343f79c7f753e7d58a4fff07bd1f34
+        5b9de815c940c30434ca0c5de59bedd4d45c862ec71e482b13cdc8248b3cb49e
+        0a4aa8008ac3756c9bc28cb2c941e1cec09e4b65005a7d906d69c8b775d0e65c
+        91a342f3f31e6b144af0e3af94f68740770203010001a3263024300e0603551d
+        0f0101ff04040302010630120603551d130101ff040830060101ff020100300d
+        06092a864886f70d01010b0500038201010030497c36ed551019398fc7bd2473
+        54554a94ca35b51a32f39cad49549e1a4537a79617437704a83da301e0ae0f20
+        b7c0bf53ca0435d1b1897b6b1d04d77a69114be0881c9e15fe8ad5268d9e12f9
+        0957f2defbcfef267a871fc4f7b83db08a4709b200c84cfda0e7c74427bee72f
+        94d8136e7e8b738fcdd05df3e6cac5b10609198f5dda84da92e043431fd6190a
+        d816583c7b04667927abeb5147f4232a4dfbe9044f22326cfe760aa4bf5dde7c
+        fcc31e9fef2f031cc08b9a0fefbecee7413837d34a18de4b2d6e473ec1f47995
+        9dd3397aac9cc92c43fb25b8216e3575ee27d52ad6ec6ede4570acba8c98205a
+        450ecfeb29bcaf85b1ef2b491d837325e7e10002cc308202c8308201b0a00302
+        0102020900fc3467937cbd94d6300d06092a864886f70d01010b05003011310f
+        300d06035504031306726f6f746361301e170d3136303430383038353631335a
+        170d3139303130333038353631335a3011310f300d06035504031306726f6f74
+        636130820122300d06092a864886f70d01010105000382010f003082010a0282
+        010100dc22a8a50ee91f343ac2761e24ab26814c27052692734c7070cff9c2a6
+        8ccc56d0f3a662c091ddd8d5dd1fec8d0380c2822cc8d9ebf71ffbf86b9a16da
+        6b1a05dfa4f028de027bcd2d1c08c84afe4c9dce6df617db7cb55d9fbb7ee324
+        66baaec5e4c3e71003188174281b4eddf4f38939b98d0818b4df84782c52432b
+        615788c3065584113799dba2af1bb2fab42a740307e9bee889d79bea34cc2d09
+        7a5f34681dd7aa2f62817119f532c12c2b9212a6253333647d312a7519df80d4
+        4c921eb7eadd01dcbac4892f3c76beaaba9487b79cacf51767e2ef87d357088c
+        2b027ba70f7a755247d7652a52dff38efe30abcd413bdadfbccc6b9caf201431
+        b07cdf0203010001a3233021300e0603551d0f0101ff040403020106300f0603
+        551d130101ff040530030101ff300d06092a864886f70d01010b050003820101
+        0016009ab0fa0c03844d0ec3f4f276ca51566922cb8712e79eda92ad39bc3a54
+        4528cf0619429e31bd33e2c5d8f08eefa5b4d1c767f55a1574b9753c216cbe72
+        76ba55beae3ddcd127b7c91aa9613996aa1756f0fac8a712cbf901295bcb2462
+        7641463aaba811dc4649c5ec134cf95a1a56b68677ec59ebec602a632d68096a
+        16fe93c6bcecb7efae2dd59cbc5d46997c856cfc9cb04f5a0eb4b8add096d442
+        c04ae3364013cd39702de8ed452e578c8bec03e3e8668ed2ed85c9545b12ce33
+        cc789e306f341592ca1fab696138e7c02cc691e0ba63f732d8be88cfcf75397a
+        7edeb7f5536bed0fc6a0c3dfdb832c8a40188a23b1d60c757e7f4f88e0968d98
+        9416030300040e000000140303000101160303004018dbff665d707548236875
+        16d6397e6b58836f2d8865f32931b2efd9277afcecfe7ca732ff52682b5574d7
+        8324b875694e50d9b46814378387d2e75b30d85f3417030301a0fcaa41bfeb06
+        8be8f4ebb7ae3bab1d593deecd4ec3e646706fb20a8baa4c932f7c9f88732ba2
+        148191d310635222000104c6f6bdec9e481c4772f45076803deaa759421040be
+        3932a16b7cdec45a591d513dc56fb610695b8fb75e98832272cceb12ce50d931
+        87c86f270277dac602cc503a769f09e8b20b2ae42009b4be947971d865668837
+        7cdd52935dbac866a2baec8ff3ba64bd20588da9d9c86b26615f5413638e74a2
+        ee1068aee9123115878144740129947b950680a21d453470d0dc698653759e66
+        274bfa960798c7259a26cbf472a453c42a22026184dcead32a349bc94584d3c5
+        e71b895db26e1b92f2313c4d16907084a84c581164714b286ec3b03d293f77a5
+        83e27acb409f05f728bc7e1c476cbbddfaf907ebdd7c9ca53eb98b6974352f83
+        bc787f4d0b8a32c12f1cafc8db5cd62125f06fbda9b2637df4c743714600114b
+        c4105475691c4f85f6b5db393891e86ac9d4591ca2dd045a07d2c85fc0440984
+        2489d80315a1ddcdd9413ac6ecf436b21dac54e0db717b67f1aad4cb8f1195cc
+        2c2c6185242a3e241345a0b19f1a2181c30d3c26492e1c972d8c150303003074
+        0538bda6fc846b1569c5ba2e5ea83c86df3ad25d685531d0be4b7eecf131489f
+        e5572afd66fbb738c1423512dc9aa7
+
+根據 TLSPlaintext、TLSCompressed、TLSCiphertext 的格式
+可以將整個 server-to-client TCP traffic 切成多個 TLS records
+
+        16 0303 0057 (Handshake)
+        020000530303571cf72c5e0d66bed4584c1c6626e7af36293290c5fb519d2a5d
+        0993bf64ea08206aab25a5ffb91d0edd6a190e307510e6973d374de8212c5c04
+        b867b547877dfd002f00000bff01000100000b00020100
+
+        16 0303 0860 (Handshake)
+        0b00085c0008590002ad308202a930820191020900957cdad31df38099300d06
+        092a864886f70d01010b050030193117301506035504030c0e696e7465726d65
+        64696174656361301e170d3136303430383038353631335a170d313930313033
+        3038353631335a30143112301006035504030c096c6f63616c686f7374308201
+        22300d06092a864886f70d01010105000382010f003082010a0282010100cb1b
+        ece9ee4c5d92d7ff115080ca595c433bd30f728d561adbf1591a59c9cf89fcc0
+        ee0703d9ce48bf220c2649f0dcbd017b5354eac880dedfa631695897b881349c
+        bcdbeaca8d75d96d7bcc67304155ef4df31106953d07487d0fc6f28416e0219c
+        418c77b3aa4e0a7e13271c58a7d1d649fb7b221ba167709439c4fceed8e2254b
+        efa0fa260eb61bafdf2451a09c6432d0f82a8109034eb240d6425deccbc4f01c
+        6d43574eb26ea1f91abd6b0ce18df8f3043d8ffced137571c201a195e062a72c
+        107feedccf74076c708664c21fa15c8dbe4c9fbe57e7351cbc6d26264bfba8e7
+        c005338ecea0b85c3c385031940d07ca29daf55bae28f3f7837ef2b8e0e30203
+        010001300d06092a864886f70d01010b050003820101008154fc88c89ca68057
+        26df9c22f7ae0bb2599574e489336abb239b8a64f9197d69bc1a49211a17331d
+        51dff4b6360c50e534fa9b180ec399ae9cf962c3d6a79a89c204f5dd8d8db93c
+        3aeda3a9f258a040817bb6b0a01d81ec5209e7d919766928590517c3738ccf21
+        2335d91d06222554db4b79a2ff41cef4521746a93c3846e3c0fb62f15bcdfa62
+        e13e316d78e490b6908eecea0740482122f0a7ef1c7c16ccd82da372b7e8124d
+        6fabf716d10b652feb00a5cee6b85c547a2a4062794c47554b8bd9710dd6b002
+        6aba8f8681eced1aebae0eab0351f06e0dd88640796486b69c11f61a14e2da50
+        db80b565e37e3ebf0f6660a2afeaffbe3e808cb1c9ccb50002d7308202d33082
+        01bba003020102020900a8cbb1716a0a4b1e300d06092a864886f70d01010b05
+        003011310f300d06035504031306726f6f746361301e170d3136303430383038
+        353631335a170d3139303130333038353631335a30193117301506035504030c
+        0e696e7465726d656469617465636130820122300d06092a864886f70d010101
+        05000382010f003082010a0282010100c1201e1ed78725dcc41d2ba3c9fb24f0
+        d75fbae38b1ca7fef9e6551a0b0f27be7084a705a5d802442dc0bdb36b6636b5
+        8c0deb3c6446bbef37deb47405ac5420bcb6567f54f572756b5f73b2d2ed2d4b
+        44c9ffc96155e13247e08d988a8f5e42a610260c07ef4abe8f00c1ed35d86314
+        2562dc35a3607f0ae4f91c0d024b0b70da22f1652f54cfc76bd087fa5f179dca
+        ff9782b334ae5970de09a68ab307ec74343f79c7f753e7d58a4fff07bd1f345b
+        9de815c940c30434ca0c5de59bedd4d45c862ec71e482b13cdc8248b3cb49e0a
+        4aa8008ac3756c9bc28cb2c941e1cec09e4b65005a7d906d69c8b775d0e65c91
+        a342f3f31e6b144af0e3af94f68740770203010001a3263024300e0603551d0f
+        0101ff04040302010630120603551d130101ff040830060101ff020100300d06
+        092a864886f70d01010b0500038201010030497c36ed551019398fc7bd247354
+        554a94ca35b51a32f39cad49549e1a4537a79617437704a83da301e0ae0f20b7
+        c0bf53ca0435d1b1897b6b1d04d77a69114be0881c9e15fe8ad5268d9e12f909
+        57f2defbcfef267a871fc4f7b83db08a4709b200c84cfda0e7c74427bee72f94
+        d8136e7e8b738fcdd05df3e6cac5b10609198f5dda84da92e043431fd6190ad8
+        16583c7b04667927abeb5147f4232a4dfbe9044f22326cfe760aa4bf5dde7cfc
+        c31e9fef2f031cc08b9a0fefbecee7413837d34a18de4b2d6e473ec1f479959d
+        d3397aac9cc92c43fb25b8216e3575ee27d52ad6ec6ede4570acba8c98205a45
+        0ecfeb29bcaf85b1ef2b491d837325e7e10002cc308202c8308201b0a0030201
+        02020900fc3467937cbd94d6300d06092a864886f70d01010b05003011310f30
+        0d06035504031306726f6f746361301e170d3136303430383038353631335a17
+        0d3139303130333038353631335a3011310f300d06035504031306726f6f7463
+        6130820122300d06092a864886f70d01010105000382010f003082010a028201
+        0100dc22a8a50ee91f343ac2761e24ab26814c27052692734c7070cff9c2a68c
+        cc56d0f3a662c091ddd8d5dd1fec8d0380c2822cc8d9ebf71ffbf86b9a16da6b
+        1a05dfa4f028de027bcd2d1c08c84afe4c9dce6df617db7cb55d9fbb7ee32466
+        baaec5e4c3e71003188174281b4eddf4f38939b98d0818b4df84782c52432b61
+        5788c3065584113799dba2af1bb2fab42a740307e9bee889d79bea34cc2d097a
+        5f34681dd7aa2f62817119f532c12c2b9212a6253333647d312a7519df80d44c
+        921eb7eadd01dcbac4892f3c76beaaba9487b79cacf51767e2ef87d357088c2b
+        027ba70f7a755247d7652a52dff38efe30abcd413bdadfbccc6b9caf201431b0
+        7cdf0203010001a3233021300e0603551d0f0101ff040403020106300f060355
+        1d130101ff040530030101ff300d06092a864886f70d01010b05000382010100
+        16009ab0fa0c03844d0ec3f4f276ca51566922cb8712e79eda92ad39bc3a5445
+        28cf0619429e31bd33e2c5d8f08eefa5b4d1c767f55a1574b9753c216cbe7276
+        ba55beae3ddcd127b7c91aa9613996aa1756f0fac8a712cbf901295bcb246276
+        41463aaba811dc4649c5ec134cf95a1a56b68677ec59ebec602a632d68096a16
+        fe93c6bcecb7efae2dd59cbc5d46997c856cfc9cb04f5a0eb4b8add096d442c0
+        4ae3364013cd39702de8ed452e578c8bec03e3e8668ed2ed85c9545b12ce33cc
+        789e306f341592ca1fab696138e7c02cc691e0ba63f732d8be88cfcf75397a7e
+        deb7f5536bed0fc6a0c3dfdb832c8a40188a23b1d60c757e7f4f88e0968d9894
+
+        16 0303 0004 (Handshake)
+        0e000000
+
+        14 0303 0001 (ChangeCipherSpec)
+        01
+
+        16 0303 0040 (Handshake)
+        18dbff665d70754823687516d6397e6b58836f2d8865f32931b2efd9277afcec
+        fe7ca732ff52682b5574d78324b875694e50d9b46814378387d2e75b30d85f34
+
+        17 0303 01a0 (ApplicationData)
+        fcaa41bfeb068be8f4ebb7ae3bab1d593deecd4ec3e646706fb20a8baa4c932f
+        7c9f88732ba2148191d310635222000104c6f6bdec9e481c4772f45076803dea
+        a759421040be3932a16b7cdec45a591d513dc56fb610695b8fb75e98832272cc
+        eb12ce50d93187c86f270277dac602cc503a769f09e8b20b2ae42009b4be9479
+        71d8656688377cdd52935dbac866a2baec8ff3ba64bd20588da9d9c86b26615f
+        5413638e74a2ee1068aee9123115878144740129947b950680a21d453470d0dc
+        698653759e66274bfa960798c7259a26cbf472a453c42a22026184dcead32a34
+        9bc94584d3c5e71b895db26e1b92f2313c4d16907084a84c581164714b286ec3
+        b03d293f77a583e27acb409f05f728bc7e1c476cbbddfaf907ebdd7c9ca53eb9
+        8b6974352f83bc787f4d0b8a32c12f1cafc8db5cd62125f06fbda9b2637df4c7
+        43714600114bc4105475691c4f85f6b5db393891e86ac9d4591ca2dd045a07d2
+        c85fc04409842489d80315a1ddcdd9413ac6ecf436b21dac54e0db717b67f1aa
+        d4cb8f1195cc2c2c6185242a3e241345a0b19f1a2181c30d3c26492e1c972d8c
+
+        15 0303 0030 (Alert)
+        740538bda6fc846b1569c5ba2e5ea83c86df3ad25d685531d0be4b7eecf13148
+        9fe5572afd66fbb738c1423512dc9aa7
+
+我們知道 server-to-client 第一個 record 內含的 Handshake 訊息
+
+        020000530303571cf72c5e0d66bed4584c1c6626e7af36293290c5fb519d2a5d
+        0993bf64ea08206aab25a5ffb91d0edd6a190e307510e6973d374de8212c5c04
+        b867b547877dfd002f00000bff01000100000b00020100
+
+其實是一個 ServerHello 訊息 (Handshake.msg_type == 2)
+
+        02 000053
+        0303571cf72c5e0d66bed4584c1c6626e7af36293290c5fb519d2a5d0993bf64
+        ea08206aab25a5ffb91d0edd6a190e307510e6973d374de8212c5c04b867b547
+        877dfd002f00000bff01000100000b00020100
+
+根據 ServerHello 的格式：
+
+        struct {
+            ProtocolVersion server_version;
+            Random random;
+            SessionID session_id;
+            CipherSuite cipher_suite;
+            CompressionMethod compression_method;
+            select (extensions_present) {
+                case false:
+                    struct {};
+                case true:
+                    Extension extensions<0..2^16-1>;
+            };
+        } ServerHello;
+
+我們可以知道 server random 為：
+
+        571cf72c5e0d66bed4584c1c6626e7af36293290c5fb519d2a5d0993bf64ea08
+
+回顧一下，我們剛剛已經得到 client random 了：
+
+        21e1129fc6492a0d975059f6732b9a5a6ef56e7b0fe87b2ba502ab41cc7cc21e
+
+也已經得到 premaster secret 了：
+
+        0303391fbf91d81d91e1fb7b2c941472eb44b63ff6e860ca35298edef82b316f
+        b516d916c72343b6b38074df2967ca56
+
+現在已經可以算出 AES-128-CBC 對稱式加密用的金鑰了
+
+首先，利用 TLS PRF 函式，從 premaster secret 算出 48 bytes 的 master secret
+
+        >>> from decode import *  # 使用我們的 decode.py 程式裡定義的函數
+
+        >>> cr = bytes.fromhex('21e1129fc6492a0d975059f6732b9a5a6ef56e7b0fe87b2ba502ab41cc7cc21e')
+        >>> sr = bytes.fromhex('571cf72c5e0d66bed4584c1c6626e7af36293290c5fb519d2a5d0993bf64ea08')
+        >>> pms = bytes.fromhex('0303391fbf91d81d91e1fb7b2c941472eb44b63ff6e860ca35298edef82b316fb516d916c72343b6b38074df2967ca56')
+        >>> ms = tls_prf(pms, b'master secret', cr + sr, 48)
+        >>> print(ms.hex())
+        bcf56e7db08651801f3363d4d3e366b8055708c62008ae8a6fcc36c5b73d41f90032778100a3487c11fdaa6dc991a960
+
+接下來 48-byte master secret 會再被展開成多個 bytes
+
+        client_write_MAC_key[SecurityParameters.mac_key_length]
+        server_write_MAC_key[SecurityParameters.mac_key_length]
+        client_write_key[SecurityParameters.enc_key_length]
+        server_write_key[SecurityParameters.enc_key_length]
+        client_write_IV[SecurityParameters.fixed_iv_length]
+        server_write_IV[SecurityParameters.fixed_iv_length]
+
+如果只想要解密 server-to-client 的資料，則只需要 server_write_key 就夠了
+
+當 cipher suite 是 TLS_RSA_WITH_AES_128_CBC_SHA 時
+
+        mac_key_length = 20
+        enc_key_length = 16
+
+將 master secret 展開，跳過 20+20+16 個 bytes 取接下來的 16 個 bytes
+
+        >>> key_block = tls_prf(ms, b'key expansion', sr + cr, 72)
+        >>> s_write_key = key_block[56:56+16]
+        >>> print(s_write_key.hex())
+        38b84e74e13d053abe0e2238921097ed
+
+我們現在已經知道 server_write_key 了：
+
+        38b84e74e13d053abe0e2238921097ed
+
+看到 server-to-client 裡面的 ApplicationData 訊息
+
+        fcaa41bfeb068be8f4ebb7ae3bab1d593deecd4ec3e646706fb20a8baa4c932f
+        7c9f88732ba2148191d310635222000104c6f6bdec9e481c4772f45076803dea
+        a759421040be3932a16b7cdec45a591d513dc56fb610695b8fb75e98832272cc
+        eb12ce50d93187c86f270277dac602cc503a769f09e8b20b2ae42009b4be9479
+        71d8656688377cdd52935dbac866a2baec8ff3ba64bd20588da9d9c86b26615f
+        5413638e74a2ee1068aee9123115878144740129947b950680a21d453470d0dc
+        698653759e66274bfa960798c7259a26cbf472a453c42a22026184dcead32a34
+        9bc94584d3c5e71b895db26e1b92f2313c4d16907084a84c581164714b286ec3
+        b03d293f77a583e27acb409f05f728bc7e1c476cbbddfaf907ebdd7c9ca53eb9
+        8b6974352f83bc787f4d0b8a32c12f1cafc8db5cd62125f06fbda9b2637df4c7
+        43714600114bc4105475691c4f85f6b5db393891e86ac9d4591ca2dd045a07d2
+        c85fc04409842489d80315a1ddcdd9413ac6ecf436b21dac54e0db717b67f1aa
+        d4cb8f1195cc2c2c6185242a3e241345a0b19f1a2181c30d3c26492e1c972d8c
+
+再次回顧
+
+        struct {
+            ContentType type;
+            ProtocolVersion version;
+            uint16 length;
+            select (SecurityParameters.cipher_type) {
+                case stream: GenericStreamCipher;
+                case block:  GenericBlockCipher;
+                case aead:   GenericAEADCipher;
+            } fragment;
+        } TLSCiphertext;
+
+        struct {
+            opaque IV[SecurityParameters.record_iv_length];
+            block-ciphered struct {
+                opaque content[TLSCompressed.length];
+                opaque MAC[SecurityParameters.mac_length];
+                uint8 padding[GenericBlockCipher.padding_length];
+                uint8 padding_length;
+            };
+        } GenericBlockCipher;
+
+注意有 16-byte 的 IV。我們現在可以對 HTTPS response 做解密了
+
+        >>> s_write_key = bytes.fromhex('38b84e74e13d053abe0e2238921097ed')
+        >>> tlsciphertext = bytes.fromhex(
+        'fcaa41bfeb068be8f4ebb7ae3bab1d593deecd4ec3e646706fb20a8baa4c932f'+
+        '7c9f88732ba2148191d310635222000104c6f6bdec9e481c4772f45076803dea'+
+        'a759421040be3932a16b7cdec45a591d513dc56fb610695b8fb75e98832272cc'+
+        'eb12ce50d93187c86f270277dac602cc503a769f09e8b20b2ae42009b4be9479'+
+        '71d8656688377cdd52935dbac866a2baec8ff3ba64bd20588da9d9c86b26615f'+
+        '5413638e74a2ee1068aee9123115878144740129947b950680a21d453470d0dc'+
+        '698653759e66274bfa960798c7259a26cbf472a453c42a22026184dcead32a34'+
+        '9bc94584d3c5e71b895db26e1b92f2313c4d16907084a84c581164714b286ec3'+
+        'b03d293f77a583e27acb409f05f728bc7e1c476cbbddfaf907ebdd7c9ca53eb9'+
+        '8b6974352f83bc787f4d0b8a32c12f1cafc8db5cd62125f06fbda9b2637df4c7'+
+        '43714600114bc4105475691c4f85f6b5db393891e86ac9d4591ca2dd045a07d2'+
+        'c85fc04409842489d80315a1ddcdd9413ac6ecf436b21dac54e0db717b67f1aa'+
+        'd4cb8f1195cc2c2c6185242a3e241345a0b19f1a2181c30d3c26492e1c972d8c'
+        )
+        >>> content_mac_pad = aes128cbc_decrypt(s_write_key, tlsciphertext[:16], tlsciphertext[16:])
+        >>> print(content_mac_pad)
+        >>> print(content_mac_pad.hex())
+
+解密後得到的 content_mac_pad 後面會有一些看起來像亂碼的東西
+
+        485454502f312e3020323030204f4b0d0a436f6e74656e742d547970653a2074
+        6578742f68746d6c0d0a0d0a3c21646f63747970652068746d6c3e0d0a3c6d65
+        746120636861727365743d7574662d383e0d0a3c7469746c653e4578616d706c
+        653c2f7469746c653e0d0a3c6c696e6b2072656c3d69636f6e20687265663d27
+        646174613a696d6167652f6769663b6261736536342c52306c474f446c684151
+        4142414941414141414141502f2f2f79483542414541414141414c4141414141
+        4142414145414141494252414137273e0d0a3c68313e4578616d706c65204854
+        5450532053657276657220284854545020312e30206f76657220544c5320312e
+        32293c2f68313e0d0a3c703e48656c6c6f2c20776f726c64213c2f703e0d0a3c
+        703e54686520544c5320636970686572207375697465207765206e65676f7469
+        617465642069733a2022544c532d5253412d574954482d4145532d3132382d43
+        42432d534841222e3c2f703e0d0af62046ea10b9726e11a9f9cc83d9e8d824a2
+        706d0d0d0d0d0d0d0d0d0d0d0d0d0d0d
+
+這是因為最後面會有 MAC 與 padding
+
+        最後一個 byte 是 0x0d == 13
+        表示在這之前有 13 個 0x0d byte 的 padding
+        在這之前是 20-byte 的 HMAC-SHA1 的 message authentication code
+
+我們將最後面的 MAC 與 padding 去掉
+
+        >>> content_mac_pad[:-( 20 + 13 + 1 )]
+        b'HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<!doctype html>\r\n<meta charset=utf-8>\r\n<title>Example</title>\r\n<link rel=icon href=\'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7\'>\r\n<h1>Example HTTPS Server (HTTP 1.0 over TLS 1.2)</h1>\r\n<p>Hello, world!</p>\r\n<p>The TLS cipher suite we negotiated is: "TLS-RSA-WITH-AES-128-CBC-SHA".</p>\r\n'
+        >>> print(content_mac_pad[:-( 20 + 13 + 1 )].decode())
+        HTTP/1.0 200 OK
+        Content-Type: text/html
+
+        <!doctype html>
+        <meta charset=utf-8>
+        <title>Example</title>
+        <link rel=icon href='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'>
+        <h1>Example HTTPS Server (HTTP 1.0 over TLS 1.2)</h1>
+        <p>Hello, world!</p>
+        <p>The TLS cipher suite we negotiated is: "TLS-RSA-WITH-AES-128-CBC-SHA".</p>
+
+現在應該可以看到來自伺服器的明文的 HTTP response 了

@@ -1,0 +1,328 @@
+這是一個去年也有進行過一次的課程
+
+You Don't Need To Believe Anything I Said
+
+資料之後會放到 https://github.com/concise/intro2tls-201703fcu
+短網址 => goo.gl/CNydLJ
+
+--------------------------------------------------------------------------------
+
+練習作業：
+實際重現一次課堂上示範的
+針對無 forward secrecy 的 static RSA 金鑰交換的攻擊：
+
+    得知伺服器 RSA 私鑰後，
+    解密已經側錄下來的那些使用較弱 cipher suite 的通訊、取得明文
+
+    課堂上示範的流程筆記 -> full-attack-details.txt
+
+一到兩個人一組
+只需要繳交 flag
+
+--------------------------------------------------------------------------------
+
+螢幕錄影、手寫圖檔、作業題組（實際上要解密的流量），會在 3/28 (二) 上傳
+
+Python 撰寫小程式很方便
+
+--------------------------------------------------------------------------------
+
+# Today we will talk about TLS
+
+  - security is a process
+    - not a product you can buy
+    - not a destination anyone can reach
+    - no magic bullet
+
+  - TLS is a protocol to secure communications over the internet
+
+  - we will talk about...
+    - how TLS can be secure
+    - how TLS can be insecure
+
+  - SSL/TLS
+    - Secure Socket Layer (deprecated)
+    - Transport Layer Security (current version is 1.2)
+
+  - 很多協議都有類似的架構，像是 SSH
+
+--------------------------------------------------------------------------------
+
+# HTTP、DNS、TCP、UDP、IP 網路通訊需要，非常多節點幫忙轉送
+
+  - 敵人除了直接入侵系統，也可以選擇掌控網路節點來影響系統
+
+# 中間人的威脅，被動式，主動式
+
+  - Alice ---- Eve ---- Bob
+  - Wi-Fi
+  - DNS
+  - 即使有加密保護... 降級 (downgrade) 攻擊？
+    你想要訪問 https://google.com/
+    但是偷懶，網址列輸入 google.com 是否會有降級攻擊？
+    大部分瀏覽器 default to (non-secure) http 的
+
+# 資料完整性 (integrity) 的需求
+
+  - 資訊被篡改而無察覺？
+
+# 身份認證 (authenticity) 的需求
+
+  - replay attack?
+
+# 資訊保密性 (confidentiality) 的需求
+
+  - 加密、解密，隱藏通訊內容
+  - replay attack?
+  - side-channel information leakage?
+
+--------------------------------------------------------------------------------
+
+# All network communications over the internet today shall be encrypted.  There is no excuse.
+
+    Just use HTTPS
+
+    Don't invent your own crypto
+
+    If you are using Google Chrome, you can go to the "Mark non-secure origins
+    as non-secure" at chrome://flags/#mark-non-secure-as and select "Always
+    mark HTTP as actively dangerous"
+
+--------------------------------------------------------------------------------
+
+# HTTPS
+
+  - HTTP Secure
+  - HTTP over SSL/TLS
+  - 在應用層之下、網路 TCP 層之上，多了一層通訊協議
+  - 搭配公鑰基礎建設，達成單向身份認證
+  - 另一個方向身份認證，通常另外搭配一個 protocol 來做 (password, 2FA, access token, cookie)
+
+--------------------------------------------------------------------------------
+
+# How does TLS look like???
+
+  - 使用 tcpdump 可以錄製封包
+
+      tcpdump -w /tmp/captured.pcap port 443
+
+  - 用 Wireshark 看看封包內容
+
+  - 使用 tcpflow 可以將 TCP traffic payload 擷取出來
+
+  - 用 openssl command-line tool 可以檢視 X.509 憑證內容
+    Google Chrome 瀏覽器 developer tool 的 Security tab 可以把憑證拿出來
+
+    openssl x509 -inform DER -noout -text < certificate.crt
+    openssl x509 -inform PEM -noout -text < certificate.pem
+
+--------------------------------------------------------------------------------
+
+# 所以我們需要密碼學
+
+  - 虛擬世界，由數學所造出來的鎖與鑰匙
+  - 如果實作得恰當，可以提供安全
+
+# 複習密碼學
+
+  - 對稱式密碼學
+
+    - cryptographic hash function
+      - a special pseudo random function
+      - SHA-2 family:
+            SHA-256
+            SHA-512/256
+            SHA-384
+            SHA-512
+
+    - message authentication code
+      - HMAC
+
+    - encryption
+      - block cipher
+      - block cipher mode of operation
+      - stream cipher
+      - authenticated encryption
+        - AES-GCM
+        - ChaCha20-Poly1305
+
+  - 公鑰 (非對稱式) 密碼學
+    - digital signature
+    - public-key encryption
+    - key exchange/agreement/establishment protocol
+      - key encapsulation mechanism
+        - RSA
+        - (Elliptic) Diffie-Hellman
+
+--------------------------------------------------------------------------------
+
+# 如何用剛剛提到的密碼學 building blocks 造出一個安全的通訊，滿足我們想要的條件？
+
+--------------------------------------------------------------------------------
+
+# TLS handshake
+
+  - cipher suite negotiation
+  - key exchange
+
+# cipher suite 例子
+
+  TLS_RSA_WITH_AES_128_CBC_SHA
+  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+
+# 概覽 TLS 如何做 key exchange... 幾個實際例子：
+
+  - TCP 連線建立就會消耗 1 RTT
+
+  - 2 RTT
+    - static RSA (no forward secrecy)
+    - static DH (no forward secrecy)
+    - ephemeral RSA (no such option)
+    - ephemeral DH
+
+  - 1 RTT using session resumption (the same trick you may use for web app login sessions)
+    - session id
+    - session ticket
+
+# 在 TLS 1.3 裡面有 forward secrecy 的 ephemeral DH 只需要 1 RTT
+
+  https://tlswg.github.io/tls13-spec/
+  https://timtaubert.de/blog/2015/11/more-privacy-less-latency-improved-handshakes-in-tls-13/
+
+--------------------------------------------------------------------------------
+
+# TLS 實際上長什麼樣子
+
+# 導讀 TLS 1.2 文件 IETF RFC 5246
+
+  - 先看 section 4 資料結構編碼格式
+  - big endian
+  - fixed-length vector
+  - variable-length vector
+
+  - TLS 1.3 草稿已經在 GitHub 了
+
+# Python
+
+    0. 程式語言，語法、語義、實作
+    1. 什麼是 Python?  什麼是 CPython?
+    2. 預習作業的 python 程式做了什麼？
+    3. 常用功能
+
+            # names (variables)
+
+            # functions
+
+            # take care of the source code indentation
+
+            # data types: int, bytes, str, tuple, list, sequence, function
+
+            # almost everything in Python is an object
+
+            # difference between '==' and 'is'
+            a = [1, 2]
+            b = [1, 2]
+            assert a == b
+            assert not (a is b)
+
+            # Python list comprehension
+            [i     for i in range(10)]
+            [i * 2 for i in range(10)]
+
+            # Python for-loop lets you loop through a sequence
+            for i in range(10):
+                print(i)
+
+            # Sequence slicing works on tuple, list, str, bytes, ...
+            a = 'World'
+            assert a[2:] == 'rld'
+            assert a[:4] == 'Worl'
+            assert a[:-1] == 'Worl'
+            assert a[2:-1] == 'rl'
+
+            # Exception handling
+            def do_something():
+                assert False
+            try:
+                do_something()
+            except AssertionError:
+                pass
+
+            # Python module import
+            import module_name
+
+            # Read or write files
+            f1 = open('/path/to/file', 'rb')
+            file_content = f1.read()
+            f1.close()
+            f2 = open('/path/to/file', 'wb')
+            f2.write(b'Hello world')
+            f2.close()
+
+    大量套件
+        https://awesome-python.com/
+
+--------------------------------------------------------------------------------
+
+# 從拆解封包學習 TLS
+
+--------------------------------------------------------------------------------
+
+# 公鑰基礎建設
+
+  - certificate authority (root vs intermediate)
+  - certificate revocation list
+  - ASN.1 & DER in X.690
+  - X.509
+  - PKCS #1 Version 2.2
+  - PKI
+  - CA (root vs intermediate)
+  - cross-signed certificate
+  - certificate chain
+  - chain of trust
+  - trust anchor
+
+# 安全威脅模型
+
+# "Let's Encrypt" gives you free certificates
+
+  - expire every 3 months
+  - cross signed certificate
+
+# HTTP Strict Transport Security
+
+  - downgrade attack is real
+
+# HTTP Public Key Pinning
+
+  - we need a database...
+  - by the way, we have some interesting things like blockchains...
+
+--------------------------------------------------------------------------------
+
+# Password authentication
+
+    On the server-side storage for traditional password authentication...
+    If you use "encryption" (e.g., AES with whatever authenticated mode of operation)
+
+        YOU ARE WRONG
+
+    If you use "cryptographic hash function" (e.g., SHA-256)
+
+        YOU ARE WRONG
+
+    You need an one-way function that is extremely hard to compute (needs
+    large of space and time)
+
+        password-hashing function (or key derivation function)
+        Argon2 / scrypt / bcrypt / PBKDF2
+
+--------------------------------------------------------------------------------
+
+# TLS 安全性取決於哪些
+
+  - 軟體系統安全性
+  - 實作的正確性
+  - 公鑰基礎建設
+  - 正確部署、挑選安全的參數、只使用安全的密碼元件
+  - 沒有太多旁通道資訊洩漏
