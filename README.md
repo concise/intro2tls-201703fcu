@@ -87,3 +87,12 @@
 
 [vb]: https://www.virtualbox.org/wiki/Downloads
 [release_mirror]: http://tw.releases.ubuntu.com/xenial/
+
+
+# 筆記與螢幕錄影
+
+- [Handwritten Notes](tree/master/handwritten-notes)
+- [Introduction to TLS - Part 1](https://www.youtube.com/watch?v=hhlkgFQSax4)
+- [Introduction to TLS - Part 2](https://www.youtube.com/watch?v=vuApksAUL3M)
+- [Introduction to TLS - Part 3](https://www.youtube.com/watch?v=lxxPU5x0k4w)
+- [Introduction to TLS - Part 4](https://www.youtube.com/watch?v=Uj5a8iD3NDU)
