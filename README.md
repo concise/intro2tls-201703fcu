@@ -1,7 +1,7 @@
 # [UPDATED] 作業要求與測試資料
 
 
-請見 [homework](homework) 目錄。
+請見 [homework](homework) 目錄下的 [README.md](homework/README.md) 檔案。
 
 
 # Introduction to TLS
