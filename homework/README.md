@@ -37,7 +37,7 @@
 
     0 directories, 6 files
 
-在這一份作業中，假設 client 與 server 雙方協議的 TLS 版本是 1.2、cipher suite 是 TLS_RSA_WITH_AES_128_CBC_SHA (0x002f)。
+在這一份作業，我們假設雙方協議的 TLS 版本是 1.2 而 cipher suite 是 TLS_RSA_WITH_AES_128_CBC_SHA(0x002f)。
 
 # 範例輸入與輸出
 
@@ -47,6 +47,6 @@
 
 本 git repository 已經為大家提供的 `decode.py` 腳本已經內含三個函數，可能會對你們有幫助：
 
- 1. rsa_decrypt() 利用 openssl 實作了 RSA 的解密
- 2. tls_prf() 實作了 RFC 5246 Section 5 的 pseudorandom function
- 3. aes128cbc_decrypt() 利用 openssl 實作了 AES-128 CBC mode 的解密
+ 1. `rsa_decrypt()` 利用 openssl 實作了 RSA 的解密
+ 2. `tls_prf()` 實作了 RFC 5246 Section 5 的 pseudorandom function
+ 3. `aes128cbc_decrypt()` 利用 openssl 實作了 AES-128 CBC mode 的解密
