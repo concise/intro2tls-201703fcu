@@ -48,3 +48,15 @@
  1. `rsa_decrypt()` 利用 openssl 實作了 RSA 的解密
  2. `tls_prf()` 實作了 RFC 5246 Section 5 的 pseudorandom function
  3. `aes128cbc_decrypt()` 利用 openssl 實作了 AES-128 CBC mode 的解密
+
+使用 Python 開啟、讀取、寫入檔案很容易：
+
+```python
+f = open('recorded-tls-traffic-client-to-server', 'rb')  # 用 binary mode 讀
+c2s = f.read()  # 得到一個 bytes 物件
+f.close()
+
+f = open('decrypted-traffic-client-to-server', 'wb')  # 用 binary mode 寫
+f.write(b'hello world\n')  # 將一個 bytes 物件的值寫到檔案
+f.close()
+```
