@@ -1,3 +1,9 @@
+# [UPDATED] 作業要求與測試資料
+
+
+請見 [homework](homework) 目錄。
+
+
 # Introduction to TLS
 
 
